@@ -20,6 +20,7 @@ import TransferForm from './pages/documents/TransferForm';
 import AdjustmentsList from './pages/documents/AdjustmentsList';
 import AdjustmentForm from './pages/documents/AdjustmentForm';
 import WarehouseList from './pages/warehouses/WarehouseList';
+import WarehouseDetail from './pages/warehouses/WarehouseDetail';
 import Ledger from './pages/ledger/Ledger';
 import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
@@ -69,6 +70,7 @@ function App() {
               <Route path="/adjustments/:id" element={<div>Adjustment Detail</div>} />
               <Route path="/ledger" element={<Ledger />} />
               <Route path="/warehouses" element={<WarehouseList />} />
+              <Route path="/warehouses/:id" element={<WarehouseDetail />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/ai-assistant" element={<AIAssistant />} />

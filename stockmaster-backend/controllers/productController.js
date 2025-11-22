@@ -16,17 +16,28 @@ const getProducts = async (req, res) => {
     }
 
     if (category) {
-      query.categoryId = category;
+      query.category = category;
     }
 
     const products = await Product.find(query)
-      .populate('categoryId', 'name')
       .sort({ createdAt: -1 });
+
+    // Convert image buffers to data URLs for responses
+    const productsWithImages = products.map((p) => {
+      const obj = p.toObject();
+      if (obj.image && obj.image.data) {
+        const base64 = obj.image.data.toString('base64');
+        obj.image = `data:${obj.image.contentType};base64,${base64}`;
+      } else {
+        obj.image = '';
+      }
+      return obj;
+    });
 
     res.json({
       success: true,
       message: 'Products retrieved successfully',
-      data: products,
+      data: productsWithImages,
     });
   } catch (error) {
     res.status(500).json({
@@ -39,9 +50,9 @@ const getProducts = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, sku, categoryId, uom, reorderLevel, initialStock } = req.body;
+    const { name, sku, category, uom, reorderLevel, initialStock, defaultWarehouse } = req.body;
 
-    if (!name || !sku || !categoryId || !uom) {
+    if (!name || !sku || !category || !uom) {
       return res.status(400).json({
         success: false,
         message: 'Name, SKU, category, and UOM are required',
@@ -62,42 +73,46 @@ const createProduct = async (req, res) => {
     const product = new Product({
       name,
       sku: sku.toUpperCase(),
-      categoryId,
+      category,
       uom,
       reorderLevel: reorderLevel || 0,
       createdBy: req.user._id,
     });
 
-    await product.save();
-
-    // Handle initial stock if provided
-    if (initialStock && initialStock.warehouseId && initialStock.quantity > 0) {
-      const adjustmentDoc = new Document({
-        docType: 'ADJUSTMENT',
-        status: 'READY',
-        createdBy: req.user._id,
-        toWarehouse: initialStock.warehouseId,
-        reason: 'Initial stock entry',
-        lines: [{
-          productId: product._id,
-          quantity: initialStock.quantity,
-        }],
-      });
-
-      await adjustmentDoc.save();
-
-      // Auto-validate initial stock adjustment
-      try {
-        await validateDocument(adjustmentDoc._id, req.user._id);
-      } catch (error) {
-        console.error('Error validating initial stock:', error);
-        // Continue anyway, document is created
+    // Handle uploaded file (multer memory buffer) or legacy base64 image
+    if (req.file && req.file.buffer) {
+      product.image = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      };
+    } else if (typeof req.body.image === 'string' && req.body.image.startsWith('data:')) {
+      const matches = req.body.image.match(/^data:(.+);base64,(.+)$/);
+      if (matches) {
+        product.image = {
+          data: Buffer.from(matches[2], 'base64'),
+          contentType: matches[1],
+        };
       }
     }
 
-    const populatedProduct = await Product.findById(product._id)
-      .populate('categoryId', 'name')
+    await product.save();
+
+    // Handle initial stock if provided
+    // Note: For now, we'll skip automatic stock creation. 
+    // Users can create receipts/adjustments manually after product creation.
+    // This can be enhanced later to create initial stock automatically.
+
+    const populatedProductDoc = await Product.findById(product._id)
       .populate('createdBy', 'name email');
+
+    // Ensure returned object has image as data URL
+    const populatedProduct = populatedProductDoc.toObject();
+    if (populatedProduct.image && populatedProduct.image.data) {
+      const base64 = populatedProduct.image.data.toString('base64');
+      populatedProduct.image = `data:${populatedProduct.image.contentType};base64,${base64}`;
+    } else {
+      populatedProduct.image = '';
+    }
 
     res.status(201).json({
       success: true,
@@ -116,7 +131,6 @@ const createProduct = async (req, res) => {
 const getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('categoryId', 'name')
       .populate('createdBy', 'name email');
 
     if (!product) {
@@ -127,10 +141,16 @@ const getProduct = async (req, res) => {
       });
     }
 
+    const obj = product.toObject();
+    if (obj.image && obj.image.data) {
+      obj.image = `data:${obj.image.contentType};base64,${obj.image.data.toString('base64')}`;
+    } else {
+      obj.image = '';
+    }
     res.json({
       success: true,
       message: 'Product retrieved successfully',
-      data: product,
+      data: obj,
     });
   } catch (error) {
     res.status(500).json({
@@ -143,7 +163,7 @@ const getProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, categoryId, uom, reorderLevel } = req.body;
+    const { name, category, uom, reorderLevel } = req.body;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -155,14 +175,29 @@ const updateProduct = async (req, res) => {
     }
 
     if (name) product.name = name;
-    if (categoryId) product.categoryId = categoryId;
+    if (category) product.category = category;
     if (uom) product.uom = uom;
     if (reorderLevel !== undefined) product.reorderLevel = reorderLevel;
+
+    // Handle uploaded file or base64 image
+    if (req.file && req.file.buffer) {
+      product.image = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      };
+    } else if (typeof req.body.image === 'string' && req.body.image.startsWith('data:')) {
+      const matches = req.body.image.match(/^data:(.+);base64,(.+)$/);
+      if (matches) {
+        product.image = {
+          data: Buffer.from(matches[2], 'base64'),
+          contentType: matches[1],
+        };
+      }
+    }
 
     await product.save();
 
     const updatedProduct = await Product.findById(product._id)
-      .populate('categoryId', 'name')
       .populate('createdBy', 'name email');
 
     res.json({

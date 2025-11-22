@@ -5,14 +5,22 @@ const {
   getWarehouses,
   createWarehouse,
   updateWarehouse,
+  getWarehouseById,
+  deleteWarehouse,
+  getWarehouseStats,
 } = require('../controllers/warehouseController');
 
 // All routes require authentication
 router.use(authenticate);
 
+// Stats endpoint (must be before /:id route)
+router.get('/stats', getWarehouseStats);
+
 router.get('/', getWarehouses);
-router.post('/', authorize('admin'), createWarehouse);
-router.put('/:id', authorize('admin'), updateWarehouse);
+router.post('/', authorize('admin', 'manager'), createWarehouse);
+router.get('/:id', getWarehouseById);
+router.put('/:id', authorize('admin', 'manager'), updateWarehouse);
+router.delete('/:id', authorize('admin', 'manager'), deleteWarehouse);
 
 module.exports = router;
 

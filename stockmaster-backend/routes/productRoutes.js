@@ -9,14 +9,16 @@ const {
   deleteProduct,
   getProductStock,
 } = require('../controllers/productController');
+const upload = require('../middleware/upload');
 
 // All routes require authentication
 router.use(authenticate);
 
 router.get('/', getProducts);
-router.post('/', authorize('admin', 'manager'), createProduct);
 router.get('/:id', getProduct);
-router.put('/:id', authorize('admin', 'manager'), updateProduct);
+// Accept image uploads as multipart/form-data field named 'image'
+router.post('/', authorize('admin', 'manager'), upload.single('image'), createProduct);
+router.put('/:id', authorize('admin', 'manager'), upload.single('image'), updateProduct);
 router.delete('/:id', authorize('admin'), deleteProduct);
 router.get('/:id/stock', getProductStock);
 

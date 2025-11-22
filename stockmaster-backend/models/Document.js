@@ -49,6 +49,15 @@ const documentSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  // Optional receipt image (for receipts uploaded via mobile/scan)
+  receiptImage: {
+    data: Buffer,
+    contentType: String,
+  },
+  // OCR / extracted data from receipt (JSON)
+  ocrData: {
+    type: Object,
+  },
   lines: {
     type: [documentLineSchema],
     required: true,

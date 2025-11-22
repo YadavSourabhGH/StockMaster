@@ -23,8 +23,9 @@ const app = express();
 
 // Middleware
 app.use(cors()); // Allow all origins for MVP
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Increase payload limits to allow images (base64) and larger JSON bodies
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

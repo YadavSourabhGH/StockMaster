@@ -12,6 +12,7 @@ const ReceiptsList = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const [selectedReceipt, setSelectedReceipt] = useState(null);
 
     useEffect(() => {
         fetchReceipts();
@@ -21,13 +22,40 @@ const ReceiptsList = () => {
         setLoading(true);
         try {
             const response = await axiosClient.get('/documents?type=RECEIPT');
-            if (response.data.success) {
-                setReceipts(response.data.data);
+            console.log('Receipts API response:', response);
+            // axiosClient interceptor already returns response.data
+            // so response is already {success, message, data}
+            if (response.success) {
+                setReceipts(response.data);
             }
         } catch (error) {
             console.error("Error fetching receipts", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const openReceipt = async (id) => {
+        try {
+            const res = await axiosClient.get(`/documents/${id}`);
+            if (res?.success) setSelectedReceipt(res.data);
+        } catch (err) {
+            console.error('Failed to load receipt', err);
+        }
+    };
+
+    const downloadReceiptImage = (receipt) => {
+        try {
+            const url = receipt.receiptImage;
+            if (!url) return;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `receipt-${receipt._id}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (err) {
+            console.error('Download failed', err);
         }
     };
 
@@ -98,7 +126,7 @@ const ReceiptsList = () => {
                                 <TableCell>{getStatusBadge(receipt.status)}</TableCell>
                                 <TableCell>{format(new Date(receipt.createdAt), 'MMM d, yyyy')}</TableCell>
                                 <TableCell>
-                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/receipts/${receipt._id}`)}>
+                                    <Button variant="ghost" size="sm" onClick={() => openReceipt(receipt._id)}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         View
                                     </Button>
@@ -107,6 +135,40 @@ const ReceiptsList = () => {
                         ))
                     )}
                 </Table>
+            )}
+            {/* Receipt modal */}
+            {selectedReceipt && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="w-11/12 max-w-2xl rounded-lg bg-white p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h2 className="text-xl font-semibold">Receipt #{selectedReceipt._id.slice(-8)}</h2>
+                            <div className="space-x-2">
+                                <Button variant="outline" onClick={() => downloadReceiptImage(selectedReceipt)}>
+                                    Download
+                                </Button>
+                                <Button onClick={() => setSelectedReceipt(null)}>Close</Button>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div><strong>Supplier:</strong> {selectedReceipt.counterparty}</div>
+                            <div><strong>Warehouse:</strong> {selectedReceipt.toWarehouse?.name}</div>
+                            <div><strong>Status:</strong> {selectedReceipt.status}</div>
+                            <div>
+                                <strong>Lines:</strong>
+                                <ul className="list-disc ml-5">
+                                    {selectedReceipt.lines?.map((l, i) => (
+                                        <li key={i}>{l.productId?.name || l.productId} — {l.quantity}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                            {selectedReceipt.receiptImage && (
+                                <div>
+                                    <img src={selectedReceipt.receiptImage} alt="receipt" className="w-full rounded" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

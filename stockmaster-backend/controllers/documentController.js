@@ -52,11 +52,19 @@ const getDocuments = async (req, res) => {
       .populate('toWarehouse', 'name code')
       .populate('lines.productId', 'name sku')
       .sort({ createdAt: -1 });
+    // Convert receiptImage buffers to data URLs for frontend
+    const docsWithImages = documents.map((d) => {
+      const obj = d.toObject();
+      if (obj.receiptImage && obj.receiptImage.data) {
+        obj.receiptImage = `data:${obj.receiptImage.contentType};base64,${obj.receiptImage.data.toString('base64')}`;
+      }
+      return obj;
+    });
 
     res.json({
       success: true,
       message: 'Documents retrieved successfully',
-      data: documents,
+      data: docsWithImages,
     });
   } catch (error) {
     res.status(500).json({
@@ -69,7 +77,7 @@ const getDocuments = async (req, res) => {
 
 const createDocument = async (req, res) => {
   try {
-    const {
+    let {
       docType,
       fromWarehouse,
       toWarehouse,
@@ -77,6 +85,19 @@ const createDocument = async (req, res) => {
       reason,
       lines,
     } = req.body;
+
+    // Parse lines if it comes as JSON string from FormData
+    if (typeof lines === 'string') {
+      try {
+        lines = JSON.parse(lines);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid lines format',
+          error: { code: 'VALIDATION_ERROR' },
+        });
+      }
+    }
 
     if (!docType || !lines || !Array.isArray(lines) || lines.length === 0) {
       return res.status(400).json({
@@ -183,6 +204,16 @@ const createDocument = async (req, res) => {
       lines,
     });
 
+    // If an image was uploaded with the request (e.g., receipt photo), store it
+    if (req.file && req.file.buffer) {
+      document.receiptImage = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype,
+      };
+      // Optionally mark receipt documents as READY if image provided
+      if (docType === 'RECEIPT') document.status = 'READY';
+    }
+
     await document.save();
 
     const populatedDoc = await Document.findById(document._id)
@@ -205,6 +236,22 @@ const createDocument = async (req, res) => {
   }
 };
 
+const getReceiptImage = async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc || !doc.receiptImage || !doc.receiptImage.data) {
+      return res.status(404).json({ success: false, message: 'Receipt image not found' });
+    }
+
+    res.set('Content-Type', doc.receiptImage.contentType || 'application/octet-stream');
+    res.set('Content-Disposition', `inline; filename="receipt-${doc._id}"`);
+    res.send(doc.receiptImage.data);
+  } catch (error) {
+    console.error('Error fetching receipt image', error);
+    res.status(500).json({ success: false, message: 'Error fetching receipt image', error: { details: error.message } });
+  }
+};
+
 const getDocument = async (req, res) => {
   try {
     const document = await Document.findById(req.params.id)
@@ -222,10 +269,14 @@ const getDocument = async (req, res) => {
       });
     }
 
+    const obj = document.toObject();
+    if (obj.receiptImage && obj.receiptImage.data) {
+      obj.receiptImage = `data:${obj.receiptImage.contentType};base64,${obj.receiptImage.data.toString('base64')}`;
+    }
     res.json({
       success: true,
       message: 'Document retrieved successfully',
-      data: document,
+      data: obj,
     });
   } catch (error) {
     res.status(500).json({
@@ -408,5 +459,6 @@ module.exports = {
   getDocument,
   updateDocument,
   validateDocument: validateDocumentEndpoint,
+  getReceiptImage,
 };
 

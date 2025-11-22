@@ -4,9 +4,6 @@ import toast from 'react-hot-toast';
 
 const axiosClient = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 // Request interceptor to add the auth token

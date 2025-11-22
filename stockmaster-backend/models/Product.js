@@ -13,10 +13,10 @@ const productSchema = new mongoose.Schema({
     trim: true,
     uppercase: true,
   },
-  categoryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
+  category: {
+    type: String,
     required: [true, 'Category is required'],
+    trim: true,
   },
   uom: {
     type: String,
@@ -27,6 +27,10 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0,
+  },
+  image: {
+    data: Buffer,
+    contentType: String,
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -48,8 +52,7 @@ productSchema.pre('save', function (next) {
   next();
 });
 
-// productSchema.index({ sku: 1 }); // Removed duplicate index
-productSchema.index({ categoryId: 1 });
+productSchema.index({ category: 1 });
 productSchema.index({ name: 'text' });
 
 module.exports = mongoose.model('Product', productSchema);

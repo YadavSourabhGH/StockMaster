@@ -33,9 +33,11 @@ const AIAssistant = () => {
 
         try {
             const response = await axiosClient.post('/ai/chat', { message: userMessage });
-            const aiResponse = response.data.data.response;
+            // axiosClient already unwraps response.data, so response is {success, data}
+            const aiResponse = response.data?.response || response.response;
             setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
         } catch (error) {
+            console.error('AI chat error:', error);
             toast.error('Failed to get AI response');
             setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
         } finally {

@@ -28,7 +28,7 @@ const Sidebar = () => {
         { name: 'Deliveries', href: '/deliveries', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
         { name: 'Transfers', href: '/transfers', icon: ArrowLeftRight, roles: ['admin', 'manager'] },
         { name: 'Adjustments', href: '/adjustments', icon: FileText, roles: ['admin', 'manager'] },
-        { name: 'Warehouses', href: '/warehouses', icon: Warehouse, roles: ['admin'] },
+        { name: 'Warehouses', href: '/warehouses', icon: Warehouse, roles: ['admin', 'manager'] },
         { name: 'Ledger', href: '/ledger', icon: History, roles: ['admin', 'manager'] },
         { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, roles: ['admin', 'manager', 'staff'] },
         { name: 'Profile', href: '/profile', icon: User, roles: ['admin', 'manager', 'staff'] },

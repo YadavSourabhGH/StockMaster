@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import ImageUpload from '../../components/ui/ImageUpload';
 import axiosClient from '../../utils/axiosClient';
 import toast from 'react-hot-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
@@ -19,29 +20,45 @@ const ProductForm = () => {
         reorderLevel: 0,
         initialStock: 0,
         defaultWarehouse: '',
+        image: '',
     });
+    const [categories, setCategories] = useState([]);
+    const [warehouses, setWarehouses] = useState([]);
 
     useEffect(() => {
         if (isEditMode) {
             fetchProduct();
         }
+        fetchMetadata();
     }, [id]);
+
+    const fetchMetadata = async () => {
+        try {
+            const catRes = await axiosClient.get('/categories');
+            if (catRes?.data) setCategories(catRes.data);
+            const whRes = await axiosClient.get('/warehouses');
+            if (whRes?.data) setWarehouses(whRes.data);
+        } catch (err) {
+            console.error('Failed to load categories/warehouses', err);
+        }
+    };
 
     const fetchProduct = async () => {
         try {
-            // const { data } = await axiosClient.get(`/products/${id}`);
-            // setFormData(data);
-
-            // Mock data
-            setFormData({
-                name: 'Widget A',
-                sku: 'SKU-001',
-                category: 'Electronics',
-                uom: 'pcs',
-                reorderLevel: 10,
-                initialStock: 150,
-                defaultWarehouse: 'Main Warehouse',
-            });
+            const res = await axiosClient.get(`/products/${id}`);
+            if (res?.data) {
+                const p = res.data;
+                setFormData({
+                    name: p.name || '',
+                    sku: p.sku || '',
+                    category: p.category || '',
+                    uom: p.uom || '',
+                    reorderLevel: p.reorderLevel || 0,
+                    initialStock: 0,
+                    defaultWarehouse: p.defaultWarehouse || '',
+                    image: p.image || '',
+                });
+            }
         } catch (error) {
             console.error("Error fetching product", error);
             toast.error("Failed to load product details");
@@ -57,12 +74,51 @@ const ProductForm = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            if (isEditMode) {
-                await axiosClient.put(`/products/${id}`, formData);
-                toast.success('Product updated successfully');
+            // If there's an image (data URL) or a file selected, submit as FormData
+            const hasImage = formData.image && typeof formData.image === 'string' && formData.image.startsWith('data:');
+            // If category is new, try to create it first
+            if (formData.category && !categories.find(c => (c.name || c) === formData.category)) {
+                try {
+                    await axiosClient.post('/categories', { name: formData.category });
+                } catch (err) {
+                    // ignore duplicate or creation errors and continue
+                    console.warn('Could not create category', err);
+                }
+            }
+
+            if (hasImage) {
+                const fd = new FormData();
+                fd.append('name', formData.name);
+                fd.append('sku', formData.sku);
+                fd.append('category', formData.category);
+                fd.append('uom', formData.uom);
+                fd.append('reorderLevel', formData.reorderLevel);
+                fd.append('initialStock', formData.initialStock);
+                fd.append('defaultWarehouse', formData.defaultWarehouse);
+
+                // convert dataURL to Blob
+                const blob = await (async () => {
+                    const res = await fetch(formData.image);
+                    return await res.blob();
+                })();
+                fd.append('image', blob, formData.sku ? `${formData.sku}.png` : 'image.png');
+
+                if (isEditMode) {
+                    await axiosClient.put(`/products/${id}`, fd, { headers: { 'Content-Type': undefined } });
+                    toast.success('Product updated successfully');
+                } else {
+                    await axiosClient.post('/products', fd, { headers: { 'Content-Type': undefined } });
+                    toast.success('Product created successfully');
+                }
             } else {
-                await axiosClient.post('/products', formData);
-                toast.success('Product created successfully');
+                // send JSON payload
+                if (isEditMode) {
+                    await axiosClient.put(`/products/${id}`, formData);
+                    toast.success('Product updated successfully');
+                } else {
+                    await axiosClient.post('/products', formData);
+                    toast.success('Product created successfully');
+                }
             }
             navigate('/products');
         } catch (error) {
@@ -110,18 +166,21 @@ const ProductForm = () => {
                         </div>
                         <div>
                             <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
-                            <select
+                            <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+                            <input
                                 name="category"
                                 value={formData.category}
                                 onChange={handleChange}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Type or select category"
+                                list="category-list"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 required
-                            >
-                                <option value="">Select Category</option>
-                                <option value="Electronics">Electronics</option>
-                                <option value="Home">Home</option>
-                                <option value="Hardware">Hardware</option>
-                            </select>
+                            />
+                            <datalist id="category-list">
+                                {categories.map((c) => (
+                                    <option key={c._id || c} value={c.name || c} />
+                                ))}
+                            </datalist>
                         </div>
                         <div>
                             <label className="mb-1 block text-sm font-medium text-slate-700">Unit of Measure (UOM)</label>
@@ -164,19 +223,28 @@ const ProductForm = () => {
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-medium text-slate-700">Default Warehouse</label>
-                                    <select
-                                        name="defaultWarehouse"
-                                        value={formData.defaultWarehouse}
-                                        onChange={handleChange}
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <option value="">Select Warehouse</option>
-                                        <option value="Main Warehouse">Main Warehouse</option>
-                                        <option value="East Warehouse">East Warehouse</option>
-                                    </select>
+                                            <select
+                                                name="defaultWarehouse"
+                                                value={formData.defaultWarehouse}
+                                                onChange={handleChange}
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            >
+                                                <option value="">Select Warehouse</option>
+                                                {warehouses.map((w) => (
+                                                    <option key={w._id} value={w._id}>{w.name}</option>
+                                                ))}
+                                            </select>
                                 </div>
                             </>
                         )}
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Product Image</label>
+                        <ImageUpload
+                            value={formData.image}
+                            onChange={(value) => setFormData(prev => ({ ...prev, image: value }))}
+                        />
                     </div>
 
                     <div className="flex justify-end space-x-4">
