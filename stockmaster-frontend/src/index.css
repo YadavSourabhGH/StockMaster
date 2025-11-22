@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4f46e5;
+  /* indigo-600 */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1f5f9;
+  /* slate-100 */
+  --color-secondary-foreground: #0f172a;
+  /* slate-900 */
+  --color-destructive: #ef4444;
+  /* red-500 */
+  --color-destructive-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  /* slate-900 */
+  --color-surface: #f8fafc;
+  /* slate-50 */
+  --color-border: #e2e8f0;
+  /* slate-200 */
+  --color-input: #e2e8f0;
+  --color-ring: #4f46e5;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-foreground);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-indigo-700 shadow-indigo-200;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-slate-100 text-slate-600;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-all;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-white text-foreground shadow-sm;
+  }
+}
