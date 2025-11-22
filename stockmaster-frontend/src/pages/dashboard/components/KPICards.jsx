@@ -15,12 +15,13 @@ const KPICards = () => {
         const fetchStats = async () => {
             try {
                 const response = await axiosClient.get('/dashboard/summary');
-                if (response.data.success) {
+                if (response.success) {
                     setStats({
-                        totalProducts: response.data.data.totalProducts,
-                        lowStock: response.data.data.lowStockCount,
+                        totalProducts: response.data.totalProducts,
+                        lowStock: response.data.lowStockCount,
                         totalValue: 0, // Backend doesn't provide value yet
-                        monthlyMovement: response.data.data.pendingReceipts + response.data.data.pendingDeliveries // Approximation
+                        // Calculate monthly movement from pending receipts and deliveries
+                        monthlyMovement: (response.data.pendingReceipts || 0) + (response.data.pendingDeliveries || 0)
                     });
                 }
             } catch (error) {

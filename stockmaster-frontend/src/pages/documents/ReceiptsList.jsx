@@ -24,7 +24,6 @@ const ReceiptsList = () => {
             const response = await axiosClient.get('/documents?type=RECEIPT');
             console.log('Receipts API response:', response);
             // axiosClient interceptor already returns response.data
-            // so response is already {success, message, data}
             if (response.success) {
                 setReceipts(response.data);
             }

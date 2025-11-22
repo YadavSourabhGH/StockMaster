@@ -16,22 +16,29 @@ const AdjustmentForm = () => {
         lines: [{ productId: '', systemQty: 0, countedQty: 0, reason: '' }],
     });
 
+    const [warehouses, setWarehouses] = useState([]);
+
     useEffect(() => {
-        fetchProducts();
+        fetchInitialData();
     }, []);
 
-    const fetchProducts = async () => {
+    const fetchInitialData = async () => {
         try {
-            // const { data } = await axiosClient.get('/products');
-            // setProducts(data);
-
-            // Mock data
-            setProducts([
-                { id: 1, name: 'Widget A', sku: 'SKU-001', stock: 150 },
-                { id: 2, name: 'Gadget B', sku: 'SKU-002', stock: 5 },
+            const [productsRes, warehousesRes] = await Promise.all([
+                axiosClient.get('/products'),
+                axiosClient.get('/warehouses')
             ]);
+
+            if (productsRes.success) {
+                setProducts(productsRes.data);
+            }
+
+            if (warehousesRes.success) {
+                setWarehouses(warehousesRes.data);
+            }
         } catch (error) {
-            console.error("Error fetching products", error);
+            console.error("Error fetching initial data", error);
+            toast.error("Failed to load products or warehouses");
         }
     };
 
@@ -44,12 +51,13 @@ const AdjustmentForm = () => {
         const newLines = [...formData.lines];
         newLines[index][field] = value;
 
-        // If product selected, update system qty (mock logic)
+        // If product selected, update system qty
         if (field === 'productId') {
-            const product = products.find(p => p.id == value);
+            const product = products.find(p => p._id === value);
             if (product) {
-                newLines[index].systemQty = product.stock; // In real app, fetch stock for specific warehouse
-                newLines[index].countedQty = product.stock; // Default to system qty
+                // Ideally we should fetch stock for specific warehouse, but for now use global stock or 0
+                newLines[index].systemQty = product.stock || 0;
+                newLines[index].countedQty = product.stock || 0; // Default to system qty
             }
         }
 
@@ -70,12 +78,35 @@ const AdjustmentForm = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            // POST /documents
-            // await axiosClient.post('/documents', { ...formData, type: 'ADJUSTMENT' });
-            toast.success('Adjustment created successfully');
+            const payload = {
+                ...formData,
+                toWarehouse: formData.warehouse,
+                docType: 'ADJUSTMENT',
+                lines: formData.lines.map(line => ({
+                    productId: line.productId,
+                    quantity: Number(line.countedQty)
+                }))
+            };
+
+            const res = await axiosClient.post('/documents', payload);
+
+            // Auto-validate to update stock immediately
+            if (res.success && res.data?._id) {
+                try {
+                    await axiosClient.post(`/documents/${res.data._id}/validate`);
+                    toast.success('Adjustment created and stock updated successfully');
+                } catch (valError) {
+                    console.error("Validation error", valError);
+                    toast.warning('Adjustment created but failed to validate automatically. Please validate from the list.');
+                }
+            } else {
+                toast.success('Adjustment created successfully');
+            }
+
             navigate('/adjustments');
         } catch (error) {
             console.error("Error creating adjustment", error);
+            toast.error(error.response?.data?.message || "Failed to create adjustment");
         } finally {
             setIsLoading(false);
         }
@@ -102,8 +133,9 @@ const AdjustmentForm = () => {
                             required
                         >
                             <option value="">Select Warehouse</option>
-                            <option value="Main Warehouse">Main Warehouse</option>
-                            <option value="East Warehouse">East Warehouse</option>
+                            {warehouses.map(w => (
+                                <option key={w._id} value={w._id}>{w.name}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -127,7 +159,7 @@ const AdjustmentForm = () => {
                                         >
                                             <option value="">Select Product</option>
                                             {products.map(p => (
-                                                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                                                <option key={p._id} value={p._id}>{p.name} ({p.sku})</option>
                                             ))}
                                         </select>
                                     </TableCell>

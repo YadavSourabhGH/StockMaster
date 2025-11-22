@@ -188,8 +188,21 @@ const ReceiptForm = () => {
                 payload.append('image', blob, 'receipt.png');
             }
 
-            await axiosClient.post('/documents', payload);
-            toast.success('Receipt created successfully');
+            const res = await axiosClient.post('/documents', payload);
+
+            // Auto-validate to update stock immediately
+            if (res.success && res.data?._id) {
+                try {
+                    await axiosClient.post(`/documents/${res.data._id}/validate`);
+                    toast.success('Receipt created and stock updated successfully');
+                } catch (valError) {
+                    console.error("Validation error", valError);
+                    toast.warning('Receipt created but failed to validate automatically. Please validate from the list.');
+                }
+            } else {
+                toast.success('Receipt created successfully');
+            }
+
             navigate('/receipts');
         } catch (error) {
             console.error("Error creating receipt", error);

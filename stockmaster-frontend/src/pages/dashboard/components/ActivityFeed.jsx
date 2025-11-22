@@ -12,8 +12,8 @@ const ActivityFeed = () => {
         const fetchActivity = async () => {
             try {
                 const response = await axiosClient.get('/dashboard/activity');
-                if (response.data.success) {
-                    const formattedActivities = response.data.data.map(item => ({
+                if (response.success) {
+                    const formattedActivities = response.data.map(item => ({
                         id: item.id,
                         type: item.documentType || 'ADJUST', // Fallback
                         product: item.product?.name || 'Unknown Product',

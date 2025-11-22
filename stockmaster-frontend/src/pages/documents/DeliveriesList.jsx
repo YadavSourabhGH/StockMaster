@@ -21,8 +21,8 @@ const DeliveriesList = () => {
         setLoading(true);
         try {
             const response = await axiosClient.get('/documents?type=DELIVERY');
-            if (response.data.success) {
-                setDeliveries(response.data.data);
+            if (response.success) {
+                setDeliveries(response.data);
             }
         } catch (error) {
             console.error("Error fetching deliveries", error);

@@ -17,22 +17,50 @@ const DeliveryForm = () => {
         lines: [{ productId: '', qty: 1 }],
     });
 
+    const [warehouses, setWarehouses] = useState([]);
+
     useEffect(() => {
-        fetchProducts();
+        fetchInitialData();
     }, []);
 
-    const fetchProducts = async () => {
+    const fetchInitialData = async () => {
         try {
-            // const { data } = await axiosClient.get('/products');
-            // setProducts(data);
-
-            // Mock data
-            setProducts([
-                { id: 1, name: 'Widget A', sku: 'SKU-001' },
-                { id: 2, name: 'Gadget B', sku: 'SKU-002' },
-            ]);
+            const warehousesRes = await axiosClient.get('/warehouses');
+            if (warehousesRes.success) {
+                setWarehouses(warehousesRes.data);
+            }
         } catch (error) {
-            console.error("Error fetching products", error);
+            console.error("Error fetching initial data", error);
+            toast.error("Failed to load warehouses");
+        }
+    };
+
+    const handleWarehouseChange = async (e) => {
+        const warehouseId = e.target.value;
+        setFormData(prev => ({ ...prev, warehouse: warehouseId, lines: [{ productId: '', qty: 1 }] }));
+
+        if (!warehouseId) {
+            setProducts([]);
+            return;
+        }
+
+        try {
+            const res = await axiosClient.get(`/warehouses/${warehouseId}/stock`);
+            if (res.success) {
+                // Filter products with positive stock and map to product format
+                const availableProducts = res.data
+                    .filter(item => item.quantity > 0)
+                    .map(item => ({
+                        _id: item.productId._id,
+                        name: item.productId.name,
+                        sku: item.productId.sku,
+                        stock: item.quantity
+                    }));
+                setProducts(availableProducts);
+            }
+        } catch (error) {
+            console.error("Error fetching warehouse stock", error);
+            toast.error("Failed to load warehouse stock");
         }
     };
 
@@ -61,12 +89,35 @@ const DeliveryForm = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            // POST /documents
-            // await axiosClient.post('/documents', { ...formData, type: 'DELIVERY' });
-            toast.success('Delivery created successfully');
+            const payload = {
+                ...formData,
+                fromWarehouse: formData.warehouse,
+                docType: 'DELIVERY',
+                lines: formData.lines.map(line => ({
+                    productId: line.productId,
+                    quantity: Number(line.qty)
+                }))
+            };
+
+            const res = await axiosClient.post('/documents', payload);
+
+            // Auto-validate to update stock immediately
+            if (res.success && res.data?._id) {
+                try {
+                    await axiosClient.post(`/documents/${res.data._id}/validate`);
+                    toast.success('Delivery created and stock updated successfully');
+                } catch (valError) {
+                    console.error("Validation error", valError);
+                    toast.warning('Delivery created but failed to validate automatically. Please validate from the list.');
+                }
+            } else {
+                toast.success('Delivery created successfully');
+            }
+
             navigate('/deliveries');
         } catch (error) {
             console.error("Error creating delivery", error);
+            toast.error(error.response?.data?.message || "Failed to create delivery");
         } finally {
             setIsLoading(false);
         }
@@ -99,13 +150,14 @@ const DeliveryForm = () => {
                             <select
                                 name="warehouse"
                                 value={formData.warehouse}
-                                onChange={handleChange}
+                                onChange={handleWarehouseChange}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 required
                             >
                                 <option value="">Select Warehouse</option>
-                                <option value="Main Warehouse">Main Warehouse</option>
-                                <option value="East Warehouse">East Warehouse</option>
+                                {warehouses.map(w => (
+                                    <option key={w._id} value={w._id}>{w.name}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -130,7 +182,9 @@ const DeliveryForm = () => {
                                         >
                                             <option value="">Select Product</option>
                                             {products.map(p => (
-                                                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                                                <option key={p._id} value={p._id}>
+                                                    {p.name} ({p.sku}) - Stock: {p.stock}
+                                                </option>
                                             ))}
                                         </select>
                                     </TableCell>

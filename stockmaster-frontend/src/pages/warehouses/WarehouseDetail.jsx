@@ -21,9 +21,9 @@ const WarehouseDetail = () => {
     const fetchWarehouse = async () => {
         setLoading(true);
         try {
-            const { data } = await axiosClient.get(`/warehouses/${id}`);
-            if (data.success) {
-                setWarehouse(data.data);
+            const response = await axiosClient.get(`/warehouses/${id}`);
+            if (response.success) {
+                setWarehouse(response.data);
             }
         } catch (error) {
             console.error("Error fetching warehouse", error);
@@ -36,10 +36,10 @@ const WarehouseDetail = () => {
 
     const fetchStockData = async () => {
         try {
-            // Fetch stock levels for this warehouse
-            // This would need to be implemented in the backend
-            // const { data } = await axiosClient.get(`/stock-levels?warehouse=${id}`);
-            // setStockLevels(data.data);
+            const response = await axiosClient.get(`/warehouses/${id}/stock`);
+            if (response.success) {
+                setStockLevels(response.data);
+            }
         } catch (error) {
             console.error("Error fetching stock data", error);
         }
@@ -172,7 +172,7 @@ const WarehouseDetail = () => {
                         <h3 className="text-sm font-medium text-slate-600">Total Products</h3>
                         <Package className="h-5 w-5 text-blue-600" />
                     </div>
-                    <p className="text-3xl font-bold text-slate-900">0</p>
+                    <p className="text-3xl font-bold text-slate-900">{stockLevels.length}</p>
                     <p className="text-xs text-slate-500 mt-1">Product types in stock</p>
                 </div>
 
@@ -181,7 +181,9 @@ const WarehouseDetail = () => {
                         <h3 className="text-sm font-medium text-slate-600">Total Stock</h3>
                         <BarChart3 className="h-5 w-5 text-green-600" />
                     </div>
-                    <p className="text-3xl font-bold text-slate-900">0</p>
+                    <p className="text-3xl font-bold text-slate-900">
+                        {stockLevels.reduce((acc, item) => acc + item.quantity, 0).toLocaleString()}
+                    </p>
                     <p className="text-xs text-slate-500 mt-1">Total units in warehouse</p>
                 </div>
 
@@ -190,19 +192,53 @@ const WarehouseDetail = () => {
                         <h3 className="text-sm font-medium text-slate-600">Stock Value</h3>
                         <TrendingUp className="h-5 w-5 text-purple-600" />
                     </div>
-                    <p className="text-3xl font-bold text-slate-900">$0</p>
+                    <p className="text-3xl font-bold text-slate-900">Not Avaiable</p>
                     <p className="text-xs text-slate-500 mt-1">Estimated total value</p>
                 </div>
             </div>
 
-            {/* Stock Levels (Placeholder) */}
+            {/* Stock Levels */}
             <div className="rounded-lg bg-white p-6 shadow-sm border border-slate-100">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Stock Levels</h2>
-                <div className="flex flex-col items-center justify-center py-12">
-                    <Package className="h-12 w-12 text-slate-300 mb-3" />
-                    <p className="text-slate-600">No stock data available</p>
-                    <p className="text-sm text-slate-400 mt-1">Stock levels will appear here once products are added to this warehouse</p>
-                </div>
+                {stockLevels.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                                <tr>
+                                    <th className="px-4 py-3">Product</th>
+                                    <th className="px-4 py-3">SKU</th>
+                                    <th className="px-4 py-3">Category</th>
+                                    <th className="px-4 py-3 text-right">Quantity</th>
+                                    <th className="px-4 py-3 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {stockLevels.map((item) => (
+                                    <tr key={item._id} className="border-b border-slate-100 hover:bg-slate-50">
+                                        <td className="px-4 py-3 font-medium text-slate-900">{item.productId?.name || 'Unknown'}</td>
+                                        <td className="px-4 py-3 text-slate-600">{item.productId?.sku || '-'}</td>
+                                        <td className="px-4 py-3 text-slate-600">{item.productId?.category || '-'}</td>
+                                        <td className="px-4 py-3 text-right font-medium">{item.quantity}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <span className={`px-2 py-1 text-xs rounded-full ${item.quantity > 10 ? 'bg-green-100 text-green-800' :
+                                                item.quantity > 0 ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-red-100 text-red-800'
+                                                }`}>
+                                                {item.quantity > 10 ? 'In Stock' : item.quantity > 0 ? 'Low Stock' : 'Out of Stock'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <Package className="h-12 w-12 text-slate-300 mb-3" />
+                        <p className="text-slate-600">No stock data available</p>
+                        <p className="text-sm text-slate-400 mt-1">Stock levels will appear here once products are added to this warehouse</p>
+                    </div>
+                )}
             </div>
 
             {/* Recent Movements (Placeholder) */}

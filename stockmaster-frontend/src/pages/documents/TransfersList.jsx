@@ -21,8 +21,8 @@ const TransfersList = () => {
         setLoading(true);
         try {
             const response = await axiosClient.get('/documents?type=TRANSFER');
-            if (response.data.success) {
-                setTransfers(response.data.data);
+            if (response.success) {
+                setTransfers(response.data);
             }
         } catch (error) {
             console.error("Error fetching transfers", error);

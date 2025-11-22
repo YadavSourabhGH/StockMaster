@@ -228,6 +228,30 @@ const getWarehouseStats = async (req, res) => {
   }
 };
 
+const getWarehouseStock = async (req, res) => {
+  try {
+    const StockLevel = require('../models/StockLevel');
+    const stockLevels = await StockLevel.find({ warehouseId: req.params.id })
+      .populate('productId', 'name sku category uom')
+      .lean();
+
+    // Filter out any stock levels where product might have been deleted
+    const validStockLevels = stockLevels.filter(sl => sl.productId);
+
+    res.json({
+      success: true,
+      message: 'Warehouse stock retrieved successfully',
+      data: validStockLevels,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching warehouse stock',
+      error: { details: error.message },
+    });
+  }
+};
+
 module.exports = {
   getWarehouses,
   createWarehouse,
@@ -235,5 +259,6 @@ module.exports = {
   getWarehouseById,
   deleteWarehouse,
   getWarehouseStats,
+  getWarehouseStock,
 };
 

@@ -32,9 +32,6 @@ const getStockLevel = async (productId, warehouseId) => {
 };
 
 const validateReceipt = async (document, validatedBy) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (!document.toWarehouse) {
       throw new Error('Receipt must have a destination warehouse');
@@ -61,28 +58,21 @@ const validateReceipt = async (document, validatedBy) => {
       stockMoves.push(stockMove);
     }
 
-    await StockMove.insertMany(stockMoves, { session });
+    await StockMove.insertMany(stockMoves);
 
     // Update document status
     document.status = 'DONE';
     document.validatedBy = validatedBy;
     document.validatedAt = new Date();
-    await document.save({ session });
+    await document.save();
 
-    await session.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 const validateDelivery = async (document, validatedBy) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (!document.fromWarehouse) {
       throw new Error('Delivery must have a source warehouse');
@@ -122,28 +112,21 @@ const validateDelivery = async (document, validatedBy) => {
       stockMoves.push(stockMove);
     }
 
-    await StockMove.insertMany(stockMoves, { session });
+    await StockMove.insertMany(stockMoves);
 
     // Update document status
     document.status = 'DONE';
     document.validatedBy = validatedBy;
     document.validatedAt = new Date();
-    await document.save({ session });
+    await document.save();
 
-    await session.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 const validateTransfer = async (document, validatedBy) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (!document.fromWarehouse || !document.toWarehouse) {
       throw new Error('Transfer must have both source and destination warehouses');
@@ -196,28 +179,21 @@ const validateTransfer = async (document, validatedBy) => {
       stockMoves.push(stockMove);
     }
 
-    await StockMove.insertMany(stockMoves, { session });
+    await StockMove.insertMany(stockMoves);
 
     // Update document status
     document.status = 'DONE';
     document.validatedBy = validatedBy;
     document.validatedAt = new Date();
-    await document.save({ session });
+    await document.save();
 
-    await session.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 const validateAdjustment = async (document, validatedBy) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (!document.toWarehouse) {
       throw new Error('Adjustment must have a warehouse');
@@ -238,7 +214,7 @@ const validateAdjustment = async (document, validatedBy) => {
         {
           $set: { quantity: line.quantity, updatedAt: new Date() },
         },
-        { upsert: true, new: true, session }
+        { upsert: true, new: true }
       );
 
       // Create stock move entry with the delta
@@ -252,21 +228,17 @@ const validateAdjustment = async (document, validatedBy) => {
       stockMoves.push(stockMove);
     }
 
-    await StockMove.insertMany(stockMoves, { session });
+    await StockMove.insertMany(stockMoves);
 
     // Update document status
     document.status = 'DONE';
     document.validatedBy = validatedBy;
     document.validatedAt = new Date();
-    await document.save({ session });
+    await document.save();
 
-    await session.commitTransaction();
     return { success: true };
   } catch (error) {
-    await session.abortTransaction();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 

@@ -46,6 +46,16 @@ const getSummary = async (req, res) => {
       status: { $in: ['DRAFT', 'WAITING', 'READY'] },
     });
 
+    // Total Warehouses
+    const Warehouse = require('../models/Warehouse');
+    const totalWarehouses = await Warehouse.countDocuments();
+
+    // Total Documents by Type
+    const totalReceipts = await Document.countDocuments({ docType: 'RECEIPT' });
+    const totalDeliveries = await Document.countDocuments({ docType: 'DELIVERY' });
+    const totalTransfers = await Document.countDocuments({ docType: 'TRANSFER' });
+    const totalAdjustments = await Document.countDocuments({ docType: 'ADJUSTMENT' });
+
     res.json({
       success: true,
       message: 'Dashboard summary retrieved successfully',
@@ -56,6 +66,11 @@ const getSummary = async (req, res) => {
         pendingReceipts,
         pendingDeliveries,
         scheduledTransfers,
+        totalWarehouses,
+        totalReceipts,
+        totalDeliveries,
+        totalTransfers,
+        totalAdjustments,
       },
     });
   } catch (error) {

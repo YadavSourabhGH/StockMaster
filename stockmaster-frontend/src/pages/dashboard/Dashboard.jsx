@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Download, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import SystemSummary from './components/SystemSummary';
+
 const Dashboard = () => {
     return (
         <div className="space-y-8">
@@ -29,6 +31,8 @@ const Dashboard = () => {
             </div>
 
             <KPICards />
+
+            <SystemSummary />
 
             <div className="grid gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2">

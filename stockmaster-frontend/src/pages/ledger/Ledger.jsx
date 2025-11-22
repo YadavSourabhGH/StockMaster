@@ -20,7 +20,7 @@ const Ledger = () => {
         try {
             const response = await axiosClient.get('/stock-moves');
             if (response.data.success) {
-                setMoves(response.data.data);
+                setMoves(response.data);
             }
         } catch (error) {
             console.error("Error fetching moves", error);

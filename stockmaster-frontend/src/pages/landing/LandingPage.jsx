@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, ShieldCheck, Zap, Layers } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import dashboardImg from '../../assets/dashboard.png';
 
 const LandingPage = () => {
     return (
@@ -59,13 +60,11 @@ const LandingPage = () => {
                         <div className="absolute -inset-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 opacity-20 blur-2xl"></div>
                         <div className="relative rounded-xl border border-slate-200 bg-white/50 p-2 shadow-2xl backdrop-blur-sm lg:rounded-2xl lg:p-4">
                             <div className="aspect-[16/9] overflow-hidden rounded-lg bg-slate-50 border border-slate-100">
-                                {/* Placeholder for dashboard screenshot */}
-                                <div className="flex h-full items-center justify-center text-slate-400">
-                                    <div className="text-center">
-                                        <BarChart3 className="mx-auto h-16 w-16 opacity-50" />
-                                        <p className="mt-4 text-sm font-medium">Dashboard Preview</p>
-                                    </div>
-                                </div>
+                                <img
+                                    src={dashboardImg}
+                                    alt="StockMaster Dashboard"
+                                    className="h-full w-full object-cover object-top"
+                                />
                             </div>
                         </div>
                     </div>

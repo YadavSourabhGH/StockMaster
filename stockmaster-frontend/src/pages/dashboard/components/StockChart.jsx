@@ -28,20 +28,20 @@ const StockChart = () => {
         const fetchChartData = async () => {
             try {
                 const response = await axiosClient.get('/dashboard/chart');
-                if (response.data.success) {
+                if (response.success) {
                     setChartData({
-                        labels: response.data.data.labels,
+                        labels: response.data.labels,
                         datasets: [
                             {
                                 label: 'Stock In',
-                                data: response.data.data.datasets[0].data,
+                                data: response.data.datasets[0].data,
                                 backgroundColor: '#4f46e5', // indigo-600
                                 barPercentage: 0.6,
                                 categoryPercentage: 0.8
                             },
                             {
                                 label: 'Stock Out',
-                                data: response.data.data.datasets[1].data,
+                                data: response.data.datasets[1].data,
                                 backgroundColor: '#e2e8f0', // slate-200
                                 barPercentage: 0.6,
                                 categoryPercentage: 0.8

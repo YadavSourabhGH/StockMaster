@@ -21,8 +21,8 @@ const AdjustmentsList = () => {
         setLoading(true);
         try {
             const response = await axiosClient.get('/documents?type=ADJUSTMENT');
-            if (response.data.success) {
-                setAdjustments(response.data.data);
+            if (response.success) {
+                setAdjustments(response.data);
             }
         } catch (error) {
             console.error("Error fetching adjustments", error);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, MapPin, Building2, Phone, Mail, Search, Filter, BarChart3 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -28,6 +29,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, type = 'dan
 };
 
 const WarehouseList = () => {
+    const navigate = useNavigate();
     const [warehouses, setWarehouses] = useState([]);
     const [filteredWarehouses, setFilteredWarehouses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -381,7 +383,12 @@ const WarehouseList = () => {
                                 <div className="flex items-center space-x-3">
                                     <div className="text-2xl">{getTypeIcon(warehouse.type)}</div>
                                     <div>
-                                        <h3 className="font-semibold text-slate-900">{warehouse.name}</h3>
+                                        <h3
+                                            className="font-semibold text-slate-900 cursor-pointer hover:text-blue-600"
+                                            onClick={() => navigate(`/warehouses/${warehouse._id}`)}
+                                        >
+                                            {warehouse.name}
+                                        </h3>
                                         <p className="text-xs font-mono text-slate-500">{warehouse.code}</p>
                                     </div>
                                 </div>
